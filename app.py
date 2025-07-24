@@ -8,10 +8,10 @@ st.set_page_config(
     page_title="CaptionCrafter ✨",
     page_icon="✍️",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# Professional Custom CSS with Black & Parrot Green Theme
+# Professional Custom CSS with Sidebar Layout
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -21,6 +21,72 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
     }
     
+    /* Sidebar Styling */
+    .css-1d391kg {
+        background: rgba(0, 0, 0, 0.9) !important;
+        border-right: 2px solid rgba(34, 197, 94, 0.3) !important;
+    }
+    
+    .sidebar-content {
+        padding: 20px 15px;
+        height: 100vh;
+        overflow-y: auto;
+    }
+    
+    .sidebar-title {
+        color: #22c55e;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        text-align: center;
+        letter-spacing: 0.5px;
+    }
+    
+    .history-item {
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .history-item:hover {
+        background: rgba(34, 197, 94, 0.2);
+        transform: translateX(5px);
+        border-color: rgba(34, 197, 94, 0.4);
+    }
+    
+    .history-text {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.85rem;
+        line-height: 1.4;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+    }
+    
+    .history-time {
+        color: rgba(34, 197, 94, 0.7);
+        font-size: 0.75rem;
+        margin-top: 8px;
+        font-weight: 500;
+    }
+    
+    .clear-history {
+        background: rgba(239, 68, 68, 0.1) !important;
+        border: 1px solid rgba(239, 68, 68, 0.3) !important;
+        color: #ef4444 !important;
+        border-radius: 8px !important;
+        padding: 8px 16px !important;
+        font-size: 0.85rem !important;
+        margin-top: 15px !important;
+        width: 100% !important;
+    }
+    
+    /* Main Content */
     .main-container {
         background: rgba(0, 0, 0, 0.7);
         backdrop-filter: blur(20px);
@@ -29,6 +95,8 @@ st.markdown("""
         margin: 20px;
         border: 1px solid rgba(34, 197, 94, 0.2);
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        height: calc(100vh - 40px);
+        overflow-y: auto;
     }
     
     .header-section {
@@ -36,47 +104,44 @@ st.markdown("""
         background: rgba(0, 0, 0, 0.8);
         backdrop-filter: blur(15px);
         border-radius: 16px;
-        padding: 40px;
-        margin-bottom: 40px;
+        padding: 30px;
+        margin-bottom: 30px;
         border: 1px solid rgba(34, 197, 94, 0.3);
         box-shadow: 0 8px 32px rgba(34, 197, 94, 0.1);
     }
     
     .main-title {
-        font-size: 3.5rem;
+        font-size: 2.8rem;
         font-weight: 700;
         color: #22c55e;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         text-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
         letter-spacing: -1px;
     }
     
     .subtitle {
-        font-size: 1.2rem;
+        font-size: 1rem;
         color: rgba(255, 255, 255, 0.8);
         font-weight: 400;
         margin-bottom: 0;
-        max-width: 600px;
-        margin: 0 auto;
-        line-height: 1.6;
+        line-height: 1.5;
     }
     
     .input-section {
         background: rgba(0, 0, 0, 0.6);
         backdrop-filter: blur(20px);
         border-radius: 16px;
-        padding: 35px;
-        margin: 30px 0;
+        padding: 25px;
+        margin-bottom: 25px;
         border: 1px solid rgba(34, 197, 94, 0.2);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
     
     .section-title {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
         font-weight: 600;
         color: #22c55e;
-        margin-bottom: 20px;
-        text-align: center;
+        margin-bottom: 15px;
         letter-spacing: 0.5px;
     }
     
@@ -85,10 +150,11 @@ st.markdown("""
         border: 2px solid rgba(34, 197, 94, 0.3) !important;
         border-radius: 12px !important;
         color: #ffffff !important;
-        font-size: 1.1rem !important;
-        padding: 20px !important;
+        font-size: 1rem !important;
+        padding: 18px !important;
         transition: all 0.3s ease !important;
         font-family: 'Inter', sans-serif !important;
+        height: 100px !important;
     }
     
     .stTextArea textarea:focus {
@@ -116,7 +182,7 @@ st.markdown("""
     }
     
     .stSlider {
-        padding: 20px 0 !important;
+        padding: 15px 0 !important;
     }
     
     .stSlider > div > div > div > div {
@@ -148,42 +214,42 @@ st.markdown("""
     .caption-output {
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         border-radius: 16px;
-        padding: 35px;
-        margin: 30px 0;
+        padding: 25px;
+        margin-top: 20px;
         border: 1px solid rgba(34, 197, 94, 0.3);
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-        position: relative;
     }
     
     .caption-header {
-        font-size: 1.3rem;
+        font-size: 1.1rem;
         font-weight: 600;
         color: #22c55e;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         letter-spacing: 0.5px;
     }
     
     .caption-text {
-        font-size: 1.1rem;
-        line-height: 1.8;
+        font-size: 1rem;
+        line-height: 1.7;
         color: #ffffff;
         font-weight: 400;
-        padding: 25px;
+        padding: 20px;
         background: rgba(0, 0, 0, 0.4);
         border-radius: 12px;
         border-left: 4px solid #22c55e;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
         white-space: pre-wrap;
+        max-height: 200px;
+        overflow-y: auto;
     }
     
     .action-buttons {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 15px;
-        margin-top: 25px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
     }
     
     .action-btn {
@@ -191,12 +257,12 @@ st.markdown("""
         backdrop-filter: blur(10px) !important;
         border: 1px solid rgba(34, 197, 94, 0.3) !important;
         border-radius: 10px !important;
-        padding: 12px 18px !important;
+        padding: 10px 16px !important;
         color: #22c55e !important;
         font-weight: 500 !important;
         transition: all 0.3s ease !important;
         cursor: pointer !important;
-        font-size: 0.95rem !important;
+        font-size: 0.9rem !important;
     }
     
     .action-btn:hover {
@@ -209,99 +275,45 @@ st.markdown("""
         display: inline-block;
         background: linear-gradient(135deg, #22c55e, #16a34a);
         color: #000000;
-        padding: 8px 18px;
-        border-radius: 20px;
+        padding: 6px 14px;
+        border-radius: 15px;
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
-        margin: 15px 0;
-    }
-    
-    .tips-section {
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(15px);
-        border-radius: 16px;
-        padding: 35px;
-        margin: 40px 0;
-        border: 1px solid rgba(34, 197, 94, 0.2);
-    }
-    
-    .tips-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 20px;
-        margin-top: 25px;
-    }
-    
-    .tip-card {
-        background: rgba(0, 0, 0, 0.5);
-        border-radius: 12px;
-        padding: 25px;
-        border-left: 3px solid #22c55e;
-        transition: all 0.3s ease;
-        border: 1px solid rgba(34, 197, 94, 0.1);
-    }
-    
-    .tip-card:hover {
-        transform: translateY(-2px);
-        background: rgba(0, 0, 0, 0.7);
-        box-shadow: 0 8px 25px rgba(34, 197, 94, 0.1);
-    }
-    
-    .tip-title {
-        color: #22c55e;
-        font-weight: 600;
-        font-size: 1.1rem;
-        margin-bottom: 12px;
         letter-spacing: 0.5px;
+        box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        margin-bottom: 15px;
     }
     
-    .tip-content {
-        color: rgba(255, 255, 255, 0.8);
-        line-height: 1.6;
-        font-size: 0.95rem;
-    }
-    
-    .recent-section {
+    .tips-compact {
         background: rgba(0, 0, 0, 0.6);
         backdrop-filter: blur(15px);
         border-radius: 16px;
-        padding: 30px;
-        margin: 30px 0;
+        padding: 20px;
+        margin-top: 20px;
         border: 1px solid rgba(34, 197, 94, 0.2);
     }
     
-    .recent-item {
-        background: rgba(0, 0, 0, 0.4);
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 15px;
-        border-left: 3px solid #22c55e;
-        border: 1px solid rgba(34, 197, 94, 0.1);
-    }
-    
-    .recent-title {
-        color: #22c55e;
-        font-weight: 600;
+    .tips-compact .section-title {
         font-size: 1rem;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
     }
     
-    .recent-content {
+    .tip-compact {
         color: rgba(255, 255, 255, 0.8);
+        font-size: 0.85rem;
         line-height: 1.5;
-        font-size: 0.9rem;
+        margin-bottom: 8px;
+        padding-left: 15px;
+        position: relative;
     }
     
-    .footer {
-        text-align: center;
-        padding: 30px;
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 0.9rem;
-        border-top: 1px solid rgba(34, 197, 94, 0.1);
-        margin-top: 40px;
+    .tip-compact:before {
+        content: "•";
+        color: #22c55e;
+        position: absolute;
+        left: 0;
+        font-weight: bold;
     }
     
     /* Hide Streamlit elements */
@@ -313,23 +325,25 @@ st.markdown("""
     .stProgress > div > div > div > div {
         background: #22c55e !important;
     }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .main-title {
+            font-size: 2.2rem;
+        }
+        .main-container {
+            padding: 20px;
+            margin: 10px;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # Initialize session state
 if 'user_prompts' not in st.session_state:
     st.session_state.user_prompts = []
-
-# Main container
-st.markdown('<div class="main-container">', unsafe_allow_html=True)
-
-# Header Section
-st.markdown('''
-<div class="header-section">
-    <h1 class="main-title">✍️ CaptionCrafter</h1>
-    <p class="subtitle">Professional Instagram caption generator powered by AI. Create engaging captions with perfect hashtags and emojis for maximum reach.</p>
-</div>
-''', unsafe_allow_html=True)
+if 'prompt_times' not in st.session_state:
+    st.session_state.prompt_times = []
 
 # Caption Templates and Logic
 CAPTION_TEMPLATES = {
@@ -409,6 +423,45 @@ def generate_clean_caption(user_input, style='casual'):
     
     return final_caption, category
 
+# Sidebar for History
+with st.sidebar:
+    st.markdown('<div class="sidebar-content">', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-title">📚 Recent History</div>', unsafe_allow_html=True)
+    
+    if st.session_state.user_prompts:
+        for i, (prompt, prompt_time) in enumerate(zip(reversed(st.session_state.user_prompts[-10:]), 
+                                                      reversed(st.session_state.prompt_times[-10:]))):
+            st.markdown(f'''
+            <div class="history-item">
+                <div class="history-text">{prompt}</div>
+                <div class="history-time">{prompt_time}</div>
+            </div>
+            ''', unsafe_allow_html=True)
+        
+        if st.button("🗑️ Clear History", key="clear_history"):
+            st.session_state.user_prompts = []
+            st.session_state.prompt_times = []
+            st.rerun()
+    else:
+        st.markdown('''
+        <div style="color: rgba(255,255,255,0.6); text-align: center; padding: 20px; font-size: 0.9rem;">
+            No history yet.<br>Generate your first caption!
+        </div>
+        ''', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Main Content
+st.markdown('<div class="main-container">', unsafe_allow_html=True)
+
+# Header Section
+st.markdown('''
+<div class="header-section">
+    <h1 class="main-title">✍️ CaptionCrafter</h1>
+    <p class="subtitle">Professional Instagram caption generator powered by AI</p>
+</div>
+''', unsafe_allow_html=True)
+
 # Input Section
 st.markdown('''
 <div class="input-section">
@@ -418,8 +471,8 @@ st.markdown('''
 
 user_prompt = st.text_area(
     "",
-    placeholder="Describe your photo, moment, or feeling...\ne.g., 'Peaceful sunset over the mountains after a long hike' or 'Amazing pasta dinner with friends'",
-    height=120,
+    placeholder="Describe your photo, moment, or feeling...\ne.g., 'Peaceful sunset over the mountains' or 'Amazing dinner with friends'",
+    height=100,
     key="user_input"
 )
 
@@ -439,31 +492,19 @@ with col2:
 if st.button("🚀 Generate Caption", type="primary", use_container_width=True):
     if user_prompt.strip():
         with st.spinner("✨ Crafting your perfect caption..."):
-            # Enhanced progress animation
+            # Quick progress animation
             progress_bar = st.progress(0)
-            status_text = st.empty()
-            
-            status_messages = [
-                "🧠 Analyzing content...",
-                "🎨 Selecting emojis...",
-                "📱 Choosing hashtags...",
-                "✨ Finalizing caption...",
-                "🎉 Ready!"
-            ]
-            
             for i in range(100):
-                time.sleep(0.02)
+                time.sleep(0.01)
                 progress_bar.progress(i + 1)
-                if i % 20 == 0 and i // 20 < len(status_messages):
-                    status_text.text(status_messages[i // 20])
-            
-            status_text.empty()
             
             # Generate caption
             caption, detected_category = generate_clean_caption(user_prompt, caption_style.lower())
             
-            # Update session state
+            # Update session state with timestamp
+            current_time = datetime.now().strftime("%H:%M")
             st.session_state.user_prompts.append(user_prompt)
+            st.session_state.prompt_times.append(current_time)
             
             # Success message
             st.success("🎉 Your caption is ready!")
@@ -487,66 +528,18 @@ if st.button("🚀 Generate Caption", type="primary", use_container_width=True):
             </div>
             ''', unsafe_allow_html=True)
             
-            # Additional actions
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if st.button("🎲 Different Style", key="different_style"):
-                    st.rerun()
-            with col2:
-                if st.button("🔥 Add Trending", key="trending"):
-                    st.info("🔥 Added trending elements!")
-            with col3:
-                if st.button("📊 Preview", key="analytics"):
-                    st.info("📈 Caption optimized for engagement!")
     else:
         st.error("⚠️ Please describe your content to get started!")
 
-# Tips Section
+# Compact Tips Section
 st.markdown('''
-<div class="tips-section">
-    <div class="section-title">💡 Pro Tips</div>
-    <div class="tips-grid">
-        <div class="tip-card">
-            <div class="tip-title">✨ Be Specific</div>
-            <div class="tip-content">Include details about location, mood, and activities for more personalized captions</div>
-        </div>
-        <div class="tip-card">
-            <div class="tip-title">🎯 Know Your Audience</div>
-            <div class="tip-content">Choose the right style - casual for friends, motivational for fitness</div>
-        </div>
-        <div class="tip-card">
-            <div class="tip-title">📱 Trending Content</div>
-            <div class="tip-content">Sunset shots, food pics, and travel adventures perform best</div>
-        </div>
-        <div class="tip-card">
-            <div class="tip-title">🔥 Engagement Boost</div>
-            <div class="tip-content">Ask questions and use relevant trending hashtags</div>
-        </div>
-    </div>
+<div class="tips-compact">
+    <div class="section-title">💡 Quick Tips</div>
+    <div class="tip-compact">Be specific about location, mood, and activities</div>
+    <div class="tip-compact">Choose the right style for your audience</div>
+    <div class="tip-compact">Include trending hashtags for better reach</div>
+    <div class="tip-compact">Ask questions to boost engagement</div>
 </div>
 ''', unsafe_allow_html=True)
-
-# Recent prompts
-if st.session_state.user_prompts:
-    st.markdown('''
-    <div class="recent-section">
-        <div class="section-title">📚 Recent Creations</div>
-    </div>
-    ''', unsafe_allow_html=True)
-    
-    for i, prompt in enumerate(reversed(st.session_state.user_prompts[-3:]), 1):
-        st.markdown(f'''
-        <div class="recent-item">
-            <div class="recent-title">Creation #{i}</div>
-            <div class="recent-content">{prompt}</div>
-        </div>
-        ''', unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
-
-# Footer
-st.markdown('''
-<div class="footer">
-    CaptionCrafter © 2024 | Professional Instagram Caption Generation
-</div>
-''', unsafe_allow_html=True)
