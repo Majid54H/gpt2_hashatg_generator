@@ -7,55 +7,351 @@ from datetime import datetime
 st.set_page_config(
     page_title="InstaCap AI ✨",
     page_icon="📸",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for better UI
+# Advanced Custom CSS for Ultra-Modern UI
 st.markdown("""
 <style>
-    .main-header {
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+    
+    .stApp {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .main-container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border-radius: 30px;
+        padding: 40px;
+        margin: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+    
+    .glassmorphism-header {
         text-align: center;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(15px);
+        border-radius: 25px;
+        padding: 30px;
+        margin-bottom: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    .main-title {
+        font-size: 4rem;
+        font-weight: 700;
+        background: linear-gradient(45deg, #ff6b6b, #ffd93d, #6bcf7f, #4d79ff);
+        background-size: 400% 400%;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 3rem;
-        font-weight: bold;
+        animation: gradientShift 3s ease-in-out infinite;
+        margin-bottom: 10px;
+        text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    .subtitle {
+        font-size: 1.4rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 300;
         margin-bottom: 0;
     }
-    .sub-header {
-        text-align: center;
-        color: #666;
-        font-size: 1.2rem;
-        margin-bottom: 2rem;
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin: 30px 0;
     }
-    .caption-box {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        padding: 20px;
-        border-radius: 15px;
-        border-left: 5px solid #667eea;
-        margin: 20px 0;
-    }
-    .stats-container {
-        display: flex;
-        justify-content: space-around;
-        margin: 20px 0;
-    }
-    .stat-box {
-        text-align: center;
-        padding: 10px;
-        background: #f8f9fa;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .generation-container {
-        background: white;
+    
+    .stat-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(15px);
+        border-radius: 20px;
         padding: 25px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        transition: left 0.5s;
+    }
+    
+    .stat-card:hover::before {
+        left: 100%;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 5px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .stat-label {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 400;
+    }
+    
+    .input-section {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border-radius: 25px;
+        padding: 35px;
+        margin: 30px 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .section-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .stTextArea textarea {
+        background: rgba(255, 255, 255, 0.9) !important;
+        border: 2px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 15px !important;
+        color: #333 !important;
+        font-size: 1.1rem !important;
+        padding: 15px !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stTextArea textarea:focus {
+        border-color: #ff6b6b !important;
+        box-shadow: 0 0 20px rgba(255, 107, 107, 0.3) !important;
+        transform: scale(1.02) !important;
+    }
+    
+    .stSelectbox select {
+        background: rgba(255, 255, 255, 0.9) !important;
+        border: 2px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 12px !important;
+        color: #333 !important;
+        font-weight: 500 !important;
+    }
+    
+    .stSlider {
+        padding: 20px 0 !important;
+    }
+    
+    .generate-btn {
+        background: linear-gradient(45deg, #ff6b6b, #ffd93d) !important;
+        border: none !important;
+        border-radius: 20px !important;
+        padding: 15px 40px !important;
+        font-size: 1.3rem !important;
+        font-weight: 600 !important;
+        color: white !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+    }
+    
+    .generate-btn:hover {
+        transform: translateY(-3px) scale(1.05) !important;
+        box-shadow: 0 15px 35px rgba(255, 107, 107, 0.6) !important;
+    }
+    
+    .caption-output {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        border-radius: 25px;
+        padding: 30px;
+        margin: 30px 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .caption-output::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
+        animation: shimmer 3s linear infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .caption-header {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .caption-text {
+        font-size: 1.2rem;
+        line-height: 1.8;
+        color: #ffffff;
+        font-weight: 400;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.1);
         border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        margin: 20px 0;
+        border-left: 5px solid #ffd93d;
+        margin-bottom: 20px;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        position: relative;
+        z-index: 1;
+    }
+    
+    .action-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 25px;
+    }
+    
+    .action-btn {
+        background: rgba(255, 255, 255, 0.15) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 15px !important;
+        padding: 12px 20px !important;
+        color: white !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease !important;
+        cursor: pointer !important;
+    }
+    
+    .action-btn:hover {
+        background: rgba(255, 255, 255, 0.25) !important;
+        transform: translateY(-2px) scale(1.02) !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important;
+    }
+    
+    .category-badge {
+        display: inline-block;
+        background: linear-gradient(45deg, #ffd93d, #ff6b6b);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        margin: 10px 0;
+    }
+    
+    .tips-section {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(15px);
+        border-radius: 25px;
+        padding: 30px;
+        margin: 30px 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .tips-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 25px;
+        margin-top: 20px;
+    }
+    
+    .tip-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 20px;
+        border-left: 4px solid #ffd93d;
+        transition: all 0.3s ease;
+    }
+    
+    .tip-card:hover {
+        transform: translateX(5px);
+        background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .tip-title {
+        color: #ffd93d;
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+    
+    .tip-content {
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.6;
+    }
+    
+    .floating-particles {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+    }
+    
+    .particle {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(180deg); }
     }
 </style>
+""", unsafe_allow_html=True)
+
+# Add floating particles for ambiance
+st.markdown("""
+<div class="floating-particles">
+    <div class="particle" style="left: 10%; top: 20%; width: 8px; height: 8px; animation-delay: 0s;"></div>
+    <div class="particle" style="left: 20%; top: 80%; width: 6px; height: 6px; animation-delay: 1s;"></div>
+    <div class="particle" style="left: 60%; top: 30%; width: 10px; height: 10px; animation-delay: 2s;"></div>
+    <div class="particle" style="left: 80%; top: 70%; width: 4px; height: 4px; animation-delay: 3s;"></div>
+    <div class="particle" style="left: 40%; top: 10%; width: 7px; height: 7px; animation-delay: 4s;"></div>
+</div>
 """, unsafe_allow_html=True)
 
 # Initialize session state
@@ -64,20 +360,38 @@ if 'generated_captions' not in st.session_state:
 if 'user_prompts' not in st.session_state:
     st.session_state.user_prompts = []
 
-# Header
-st.markdown('<h1 class="main-header">📸 InstaCap AI</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Generate perfect Instagram captions with hashtags & emojis in seconds!</p>', unsafe_allow_html=True)
+# Main container
+st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
-# Stats
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Captions Generated", st.session_state.generated_captions, delta=None)
-with col2:
-    st.metric("Active Users", "2.1K+", delta="↗️")
-with col3:
-    st.metric("Success Rate", "98%", delta="↗️")
+# Header Section
+st.markdown('''
+<div class="glassmorphism-header">
+    <h1 class="main-title">📸 InstaCap AI</h1>
+    <p class="subtitle">✨ Generate viral Instagram captions with perfect hashtags & emojis ✨</p>
+</div>
+''', unsafe_allow_html=True)
 
-st.markdown("---")
+# Stats Section
+st.markdown('''
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{}+</div>
+        <div class="stat-label">Captions Generated</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">2.5K+</div>
+        <div class="stat-label">Happy Users</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">99%</div>
+        <div class="stat-label">Success Rate</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">24/7</div>
+        <div class="stat-label">Available</div>
+    </div>
+</div>
+'''.format(st.session_state.generated_captions), unsafe_allow_html=True)
 
 # Caption Templates and Logic
 CAPTION_TEMPLATES = {
@@ -146,51 +460,66 @@ def generate_clean_caption(user_input, style='casual'):
     """Generate a clean, formatted Instagram caption"""
     category = detect_category_advanced(user_input)
     
-    # Select template based on category
     if category in CAPTION_TEMPLATES:
         caption = random.choice(CAPTION_TEMPLATES[category])
     else:
         caption = random.choice(CAPTION_TEMPLATES['lifestyle'])
     
-    # Get relevant hashtags
     hashtags = random.sample(HASHTAG_SETS.get(category, HASHTAG_SETS['lifestyle']), 6)
     
-    # Format final caption
     final_caption = f"{caption}\n\n{' '.join(hashtags)}"
     
     return final_caption, category
 
-# Main Interface
-st.markdown('<div class="generation-container">', unsafe_allow_html=True)
+# Input Section
+st.markdown('''
+<div class="input-section">
+    <div class="section-title">🎯 What's your post about?</div>
+</div>
+''', unsafe_allow_html=True)
 
-# Input section
-st.subheader("🎯 What's your post about?")
 user_prompt = st.text_area(
-    "Describe your photo, moment, or feeling...",
-    placeholder="e.g., 'Peaceful sunset over the mountains after a long hike' or 'Amazing pasta dinner with friends'",
-    height=100
+    "",
+    placeholder="✨ Describe your photo, moment, or feeling...\ne.g., 'Peaceful sunset over the mountains after a long hike' or 'Amazing pasta dinner with friends'",
+    height=120,
+    key="user_input"
 )
 
-# Style options
+# Options Section
 col1, col2 = st.columns(2)
 with col1:
     caption_style = st.selectbox(
-        "✨ Caption Style",
-        ["Casual & Fun", "Motivational", "Dreamy & Poetic", "Simple & Clean"]
+        "🎨 Caption Style",
+        ["Casual & Fun", "Motivational", "Dreamy & Poetic", "Simple & Clean"],
+        key="style_select"
     )
 
 with col2:
-    hashtag_count = st.slider("📱 Number of Hashtags", 3, 10, 6)
+    hashtag_count = st.slider("📱 Hashtags", 3, 10, 6, key="hashtag_slider")
 
-# Generate button
-if st.button("🚀 Generate My Caption", type="primary", use_container_width=True):
+# Generate Button
+if st.button("🚀 Generate My Perfect Caption", type="primary", use_container_width=True):
     if user_prompt.strip():
-        with st.spinner("✨ Creating your perfect caption..."):
-            # Simulate AI processing
+        with st.spinner("✨ Crafting your viral caption..."):
+            # Enhanced progress animation
             progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            status_messages = [
+                "🧠 Analyzing your content...",
+                "🎨 Choosing perfect emojis...",
+                "📱 Selecting trending hashtags...",
+                "✨ Adding the magic touch...",
+                "🎉 Almost ready!"
+            ]
+            
             for i in range(100):
-                time.sleep(0.01)
+                time.sleep(0.02)
                 progress_bar.progress(i + 1)
+                if i % 20 == 0 and i // 20 < len(status_messages):
+                    status_text.text(status_messages[i // 20])
+            
+            status_text.empty()
             
             # Generate caption
             caption, detected_category = generate_clean_caption(user_prompt, caption_style.lower())
@@ -199,71 +528,90 @@ if st.button("🚀 Generate My Caption", type="primary", use_container_width=Tru
             st.session_state.generated_captions += 1
             st.session_state.user_prompts.append(user_prompt)
             
-            # Display results
-            st.success("🎉 Your caption is ready!")
+            # Success message
+            st.success("🎉 Your viral caption is ready to conquer Instagram!")
             
-            # Show detected category
-            st.info(f"📂 Detected Category: **{detected_category.title()}**")
+            # Category badge
+            st.markdown(f'<div class="category-badge">📂 {detected_category.title()} Vibes</div>', unsafe_allow_html=True)
             
-            # Display caption in a nice box
-            st.markdown(f"""
-            <div class="caption-box">
-                <h4>📝 Your Instagram Caption:</h4>
-                <p style="font-size: 1.1em; line-height: 1.6;">{caption}</p>
+            # Caption output with enhanced styling
+            st.markdown(f'''
+            <div class="caption-output">
+                <div class="caption-header">
+                    📝 Your Instagram Caption
+                </div>
+                <div class="caption-text">
+                    {caption}
+                </div>
+                <div class="action-buttons">
+                    <button class="action-btn">📋 Copy Caption</button>
+                    <button class="action-btn">🔄 Generate New</button>
+                    <button class="action-btn">📤 Share Now</button>
+                    <button class="action-btn">💾 Save Draft</button>
+                </div>
             </div>
-            """, unsafe_allow_html=True)
+            ''', unsafe_allow_html=True)
             
-            # Action buttons
+            # Additional actions
             col1, col2, col3 = st.columns(3)
             with col1:
-                if st.button("📋 Copy Caption", use_container_width=True):
-                    st.success("✅ Caption copied to clipboard!")
-            with col2:
-                if st.button("🔄 Generate Another", use_container_width=True):
+                if st.button("🎲 Try Different Style", key="different_style"):
                     st.rerun()
+            with col2:
+                if st.button("🔥 Make it Trending", key="trending"):
+                    st.info("🔥 Added trending elements!")
             with col3:
-                if st.button("📤 Share", use_container_width=True):
-                    st.info("📱 Share your caption on Instagram!")
+                if st.button("📊 Analytics Preview", key="analytics"):
+                    st.info("📈 Predicted engagement: High!")
     else:
-        st.warning("⚠️ Please describe your post first!")
+        st.error("⚠️ Please describe your post to get started!")
+
+# Tips Section
+st.markdown('''
+<div class="tips-section">
+    <div class="section-title">💡 Pro Tips for Viral Captions</div>
+    <div class="tips-grid">
+        <div class="tip-card">
+            <div class="tip-title">✨ Be Specific</div>
+            <div class="tip-content">Include details about location, time, mood, and activities for more personalized captions</div>
+        </div>
+        <div class="tip-card">
+            <div class="tip-title">🎯 Know Your Audience</div>
+            <div class="tip-content">Choose the right style - casual for friends, motivational for fitness, dreamy for lifestyle</div>
+        </div>
+        <div class="tip-card">
+            <div class="tip-title">📱 Trending Categories</div>
+            <div class="tip-content">Sunset shots, food pics, travel adventures, and fitness journeys perform best</div>
+        </div>
+        <div class="tip-card">
+            <div class="tip-title">🔥 Engagement Boosters</div>
+            <div class="tip-content">Ask questions, use call-to-actions, and include relevant trending hashtags</div>
+        </div>
+    </div>
+</div>
+''', unsafe_allow_html=True)
+
+# Recent prompts with enhanced styling
+if st.session_state.user_prompts:
+    st.markdown('''
+    <div class="tips-section">
+        <div class="section-title">📚 Your Recent Creations</div>
+    </div>
+    ''', unsafe_allow_html=True)
+    
+    for i, prompt in enumerate(reversed(st.session_state.user_prompts[-3:]), 1):
+        st.markdown(f'''
+        <div class="tip-card">
+            <div class="tip-title">Creation #{i}</div>
+            <div class="tip-content">{prompt}</div>
+        </div>
+        ''', unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Recent prompts
-if st.session_state.user_prompts:
-    st.markdown("---")
-    st.subheader("📚 Recent Prompts")
-    for i, prompt in enumerate(reversed(st.session_state.user_prompts[-3:]), 1):
-        st.markdown(f"**{i}.** {prompt}")
-
-# Tips section
-st.markdown("---")
-st.subheader("💡 Pro Tips for Better Captions")
-
-tips_col1, tips_col2 = st.columns(2)
-with tips_col1:
-    st.markdown("""
-    **✨ For Better Results:**
-    • Be specific about your photo
-    • Mention the mood/feeling
-    • Include location if relevant
-    • Add context (time, activity, etc.)
-    """)
-
-with tips_col2:
-    st.markdown("""
-    **🎯 Popular Categories:**
-    • Sunset & Nature shots
-    • Food & Restaurant visits
-    • Travel & Adventure
-    • Friends & Social events
-    """)
-
 # Footer
-st.markdown("---")
-st.markdown(
-    "<p style='text-align: center; color: #888; font-size: 0.9em;'>"
-    "Made with ❤️ | InstaCap AI © 2024 | Perfect captions in seconds"
-    "</p>", 
-    unsafe_allow_html=True
-)
+st.markdown('''
+<div style="text-align: center; padding: 30px; color: rgba(255,255,255,0.7); font-size: 0.9rem;">
+    Made with ❤️ & ✨ | InstaCap AI © 2024 | Turn moments into viral content
+</div>
+''', unsafe_allow_html=True)
