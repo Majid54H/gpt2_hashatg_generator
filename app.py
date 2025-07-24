@@ -1,43 +1,51 @@
 import streamlit as st
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
 
-# Load model and tokenizer
-MODEL_NAME = "majid54/gpt2_captions_generator"  # Replace with your Hugging Face model repo
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+# Load tokenizer and model from Hugging Face
+MODEL_REPO = "majid54/gpt2_captions_generator"  # Replace with your Hugging Face repo
+tokenizer = GPT2Tokenizer.from_pretrained(MODEL_REPO)
+model = GPT2LMHeadModel.from_pretrained(MODEL_REPO)
+
+# Set device
+device = torch.device("cpu")
+model.to(device)
+model.eval()
 
 # Streamlit UI
-st.set_page_config(page_title="Insta D-Bot", layout="centered")
-st.title("📸 Insta D-Bot")
-st.markdown("Create AI-generated Instagram posts with style and structure.")
+st.set_page_config(page_title="Hashtag & Emoji Caption Generator", page_icon="✨")
 
-# Input
-user_prompt = st.text_area("📝 Enter your topic or idea:", height=150, placeholder="e.g. Self-love, birthday celebration, product launch...")
+st.title("✨ Social Media Caption Generator")
+st.subheader("Generate catchy captions with emojis and hashtags!")
 
-if st.button("🚀 Generate Post"):
-    if not user_prompt.strip():
+prompt = st.text_area("Enter your idea or topic (e.g. 'A peaceful sunset over the mountains')", height=150)
+
+max_length = st.slider("Max Length", min_value=20, max_value=100, value=50)
+temperature = st.slider("Temperature", min_value=0.5, max_value=1.5, value=1.0)
+
+if st.button("Generate Caption"):
+    if prompt.strip() == "":
         st.warning("Please enter a topic or idea first.")
     else:
-        # Add clear prompt instruction
-        full_prompt = f"Write an Instagram post for the following idea with emojis, hashtags, and a clear post type (funny, informative, lifestyle, or celebration).\n\nIdea: {user_prompt.strip()}\n\nFormat:\nCaption: ...\nHashtags: ...\nEmojis: ...\nPost Type: ..."
+        try:
+            inputs = tokenizer(prompt, return_tensors="pt").to(device)
 
-        inputs = tokenizer(full_prompt, return_tensors="pt")
-        outputs = model.generate(
-            **inputs,
-            max_new_tokens=150,
-            temperature=0.9,
-            top_k=50,
-            top_p=0.95,
-            do_sample=True,
-            pad_token_id=tokenizer.eos_token_id,
-            eos_token_id=tokenizer.eos_token_id
-        )
+            with torch.no_grad():
+                outputs = model.generate(
+                    **inputs,
+                    max_length=max_length,
+                    temperature=temperature,
+                    do_sample=True,
+                    top_k=50,
+                    top_p=0.95,
+                    eos_token_id=tokenizer.eos_token_id,
+                )
 
-        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        
-        # Postprocess: extract only the generated response (remove input part)
-        response_cleaned = response.split("Format:")[-1].strip()
+            generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            generated_text = generated_text.replace(prompt, "").strip()
 
-        st.markdown("### 🎯 Generated Instagram Post")
-        st.code(response_cleaned, language="markdown")
+            st.success("Generated Caption 🎉")
+            st.markdown(f"**{generated_text}**")
+
+        except Exception as e:
+            st.error(f"🚨 Error: {e}")
