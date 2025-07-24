@@ -1,65 +1,52 @@
-import gradio as gr
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+import streamlit as st
+import requests
+import os
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 import torch
 
-# Load model and tokenizer
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-model = GPT2LMHeadModel.from_pretrained("gpt2")
+MODEL_FILE = "model.safetensors"
+MODEL_NAME = "gpt2"  # Replace if you're using a different base model
 
-# Caption generation function
-def generate_caption(prompt):
-    full_prompt = f"Write a short creative social media caption with hiking vibes, emojis, and relevant hashtags for: \"{prompt}\""
-    inputs = tokenizer(full_prompt, return_tensors="pt")
-    output = model.generate(
-        **inputs,
-        max_new_tokens=100,
-        do_sample=True,
-        temperature=0.9,
-        top_p=0.95
-    )
-    result = tokenizer.decode(output[0], skip_special_tokens=True)
-    caption = result.replace(full_prompt, "").strip()
-    return caption if caption else "Couldn't generate a creative caption. Try again!"
+# Google Drive direct download link
+model_url = "https://drive.google.com/uc?export=download&id=1c3NtubWnel9Vw7GJB4vygR758I3jb2CW"
 
-# Gradio Interface
-with gr.Blocks(css="""
-    .output-bubble {
-        background-color: #f3f4f6;
-        padding: 10px;
-        border-radius: 12px;
-        font-size: 16px;
-        margin-top: 10px;
-        line-height: 1.5;
-        white-space: pre-wrap;
-    }
-    .copy-button {
-        margin-top: 6px;
-        font-size: 14px;
-        color: #2563eb;
-        cursor: pointer;
-        background: none;
-        border: none;
-        padding: 0;
-    }
-""") as app:
+# Download the model if not present
+def download_model(url):
+    if not os.path.exists(MODEL_FILE):
+        st.write("📥 Downloading model (~464MB)...")
+        response = requests.get(url, stream=True)
+        with open(MODEL_FILE, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+        st.success("✅ Model downloaded!")
+    else:
+        st.write("✅ Model already exists.")
 
-    gr.Markdown("""
-    # 🏞️ Caption Genie – Nature & Hiking Vibes Generator  
-    Type a scene description and get a ready-to-post creative caption with emojis & hashtags!
-    """)
+# UI
+st.title("🧠 AI Text Generator")
+prompt = st.text_input("Enter a prompt:")
 
-    with gr.Row():
-        user_input = gr.Textbox(placeholder="e.g. A peaceful sunset over the mountains...", label="Enter a short description")
+# Download the model file
+download_model(model_url)
 
-    output_text = gr.Markdown(label="Generated Caption")
+# Load tokenizer and model
+@st.cache_resource
+def load_model():
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+    return tokenizer, model
 
-    def update_output(prompt):
-        caption = generate_caption(prompt)
-        return f"<div class='output-bubble'>{caption}</div><button class='copy-button' onclick='navigator.clipboard.writeText(`{caption}`)'>📋 Copy Caption</button>"
+tokenizer, model = load_model()
 
-    generate_btn = gr.Button("✨ Generate Caption")
-    generate_btn.click(fn=update_output, inputs=user_input, outputs=output_text)
-
-# Run the app
-if __name__ == "__main__":
-    app.launch()
+# Generate text
+if st.button("🚀 Generate"):
+    if prompt:
+        st.write("Generating...")
+        inputs = tokenizer(prompt, return_tensors="pt")
+        output = model.generate(**inputs, max_new_tokens=100)
+        result = tokenizer.decode(output[0], skip_special_tokens=True)
+        st.success("✅ Done!")
+        st.write(result)
+    else:
+        st.warning("⚠️ Please enter a prompt.")
