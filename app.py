@@ -1,64 +1,65 @@
-import streamlit as st
-import requests
-import os
-from transformers import AutoTokenizer, AutoModelForCausalLM
+import gradio as gr
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
 import torch
 
-MODEL_FILE = "model.safetensors"
-MODEL_NAME = "gpt2"
-model_url = "https://drive.google.com/uc?export=download&id=1c3NtubWnel9Vw7GJB4vygR758I3jb2CW"
+# Load model and tokenizer
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+model = GPT2LMHeadModel.from_pretrained("gpt2")
 
-# Page Configuration
-st.set_page_config(
-    page_title="Caption & Hashtag Generator 🤖",
-    page_icon="💬",
-    layout="centered",
-)
+# Caption generation function
+def generate_caption(prompt):
+    full_prompt = f"Write a short creative social media caption with hiking vibes, emojis, and relevant hashtags for: \"{prompt}\""
+    inputs = tokenizer(full_prompt, return_tensors="pt")
+    output = model.generate(
+        **inputs,
+        max_new_tokens=100,
+        do_sample=True,
+        temperature=0.9,
+        top_p=0.95
+    )
+    result = tokenizer.decode(output[0], skip_special_tokens=True)
+    caption = result.replace(full_prompt, "").strip()
+    return caption if caption else "Couldn't generate a creative caption. Try again!"
 
-# Header
-st.markdown("<h1 style='text-align: center; color: #3D5A80;'>🧠 Smart Caption & Hashtag Bot</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size:18px;'>Generate Instagram-style captions, #hashtags, and emojis 🎯</p>", unsafe_allow_html=True)
-st.markdown("---")
+# Gradio Interface
+with gr.Blocks(css="""
+    .output-bubble {
+        background-color: #f3f4f6;
+        padding: 10px;
+        border-radius: 12px;
+        font-size: 16px;
+        margin-top: 10px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+    }
+    .copy-button {
+        margin-top: 6px;
+        font-size: 14px;
+        color: #2563eb;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+    }
+""") as app:
 
-# Model Download
-def download_model(url):
-    if not os.path.exists(MODEL_FILE):
-        with st.spinner("📥 Downloading model (approx 460MB)..."):
-            response = requests.get(url, stream=True)
-            with open(MODEL_FILE, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-        st.success("✅ Model downloaded!")
-    else:
-        st.info("✅ Model already exists.")
+    gr.Markdown("""
+    # 🏞️ Caption Genie – Nature & Hiking Vibes Generator  
+    Type a scene description and get a ready-to-post creative caption with emojis & hashtags!
+    """)
 
-download_model(model_url)
+    with gr.Row():
+        user_input = gr.Textbox(placeholder="e.g. A peaceful sunset over the mountains...", label="Enter a short description")
 
-# Load the tokenizer and model
-@st.cache_resource
-def load_model():
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
-    return tokenizer, model
+    output_text = gr.Markdown(label="Generated Caption")
 
-tokenizer, model = load_model()
+    def update_output(prompt):
+        caption = generate_caption(prompt)
+        return f"<div class='output-bubble'>{caption}</div><button class='copy-button' onclick='navigator.clipboard.writeText(`{caption}`)'>📋 Copy Caption</button>"
 
-# Prompt Input
-prompt = st.text_input("💬 Enter your image description, moment, or thought:")
+    generate_btn = gr.Button("✨ Generate Caption")
+    generate_btn.click(fn=update_output, inputs=user_input, outputs=output_text)
 
-# Generate Button
-if st.button("🚀 Generate Caption + Hashtags"):
-    if prompt.strip() == "":
-        st.warning("⚠️ Please enter a prompt to generate from.")
-    else:
-        with st.spinner("🔍 Thinking..."):
-            inputs = tokenizer(prompt, return_tensors="pt")
-            output = model.generate(**inputs, max_new_tokens=100, do_sample=True, temperature=0.8)
-            result = tokenizer.decode(output[0], skip_special_tokens=True)
-        
-        # Styling Output
-        st.markdown("### 📝 Generated Post")
-        st.success(result)
-        st.markdown("---")
-        st.info("🔄 You can refine your prompt to get better hashtags, emojis, or themes.")
+# Run the app
+if __name__ == "__main__":
+    app.launch()
