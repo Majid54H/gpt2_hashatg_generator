@@ -23,12 +23,6 @@ tokenizer, model = load_hf_model()
 st.set_page_config(page_title="SunsetGram", layout="wide")
 st.markdown("""
 <style>
-body {
-    background-color: #FAF3E0;
-}
-h1 {
-    color: #FF6F61;
-}
 .generated-text {
     font-size: 1.3rem;
     color: #333333;
@@ -67,7 +61,7 @@ h1 {
 """, unsafe_allow_html=True)
 
 # -----------------------------
-# Helper: Detect Category
+# Category Detection
 # -----------------------------
 def detect_category_advanced(user_input):
     keywords = {
@@ -78,7 +72,6 @@ def detect_category_advanced(user_input):
         "motivational": ["dream", "goal", "inspire", "motivation", "success", "achieve", "believe"],
         "lifestyle": ["morning", "coffee", "relax", "home", "weekend", "selfie", "life"]
     }
-
     user_input_lower = user_input.lower()
     for category, words in keywords.items():
         if any(word in user_input_lower for word in words):
@@ -113,39 +106,25 @@ def get_category_emojis(category):
     return emoji_dict.get(category, emoji_dict["general"])
 
 # -----------------------------
-# Text Cleanup Functions
+# Clean Up Captions
 # -----------------------------
 def is_clean_caption(text):
     if not text or len(text) < 10:
         return False
-
     bad_patterns = [
-        r'http[s]?://',
-        r'#\w+',
-        r'\[.*?\]',
-        r'【.*?】',
-        r'quote=',
-        r'tagline=',
-        r'tbtfunkyblogger',
-        r'☎',
-        r'👉.*?http',
-        r'\d{4}-\d{2}-\d{2}',
-        r'\.com'
+        r'http[s]?://', r'#\w+', r'\[.*?\]', r'【.*?】', r'quote=', r'tagline=',
+        r'tbtfunkyblogger', r'\u260e', r'\d{4}-\d{2}-\d{2}', r'\.com'
     ]
-
     for pattern in bad_patterns:
         if re.search(pattern, text, re.IGNORECASE):
             return False
-
-    emoji_count = len(re.findall(r'[😀-🙏🌀-🗿🚀-🛿⚡-⚿]', text))
+    emoji_count = len(re.findall(r'[\U0001F600-\U0001F64F]', text))
     if emoji_count > 3:
         return False
-
     letter_count = len(re.findall(r'[a-zA-Z]', text))
     total_count = len(text.replace(' ', ''))
     if total_count > 0 and letter_count / total_count < 0.6:
         return False
-
     return True
 
 def clean_text(text):
@@ -156,53 +135,11 @@ def clean_text(text):
     text = re.sub(r'quote=.*?(?=\s|$)', '', text)
     text = re.sub(r'tagline=.*?(?=\s|$)', '', text)
     text = ' '.join(text.split())
-    text = re.sub(r'[,.\-]+$', '', text)
+    text = re.sub(r'[,\.\-]+$', '', text)
     return text
 
 # -----------------------------
-# Caption Fallback Generator
-# -----------------------------
-def generate_fallback_caption(user_input, style, category):
-    casual_templates = [
-        f"Lost in the magic of {user_input}. What's your favorite part about it?",
-        f"Completely mesmerized by {user_input}. Who else is obsessed?",
-        f"Can't believe how incredible {user_input} is! New discoveries every time.",
-        f"Falling in love with {user_input} all over again. Tell me your story!",
-        f"Captivated by the beauty of {user_input}. I could explore this forever."
-    ]
-    professional_templates = [
-        f"Reflecting on the richness of {user_input}. What aspects inspire you most?",
-        f"Witnessing the artistry behind {user_input}. How has it shaped you?",
-        f"Appreciating the excellence of {user_input}. What's your connection?",
-        f"Immersed in the sophistication of {user_input}. Share your view.",
-        f"Experiencing the mastery of {user_input}. Favorite memory?"
-    ]
-    funny_templates = [
-        f"So apparently {user_input} took over my life. Anyone else obsessed?",
-        f"Just checking {user_input}... 3 hours later: still here. No regrets!",
-        f"Breaking news: {user_input} addict caught again.",
-        f"Plot twist: {user_input} is the main character now.",
-        f"Current mood: pretending I'm not obsessed with {user_input}."
-    ]
-    inspirational_templates = [
-        f"{user_input} reminds me to slow down and be present. What inspires you?",
-        f"The power of {user_input} transforms the ordinary into extraordinary.",
-        f"{user_input} connects us in ways we never expected. What's your why?",
-        f"Through {user_input}, I'm learning to embrace new beginnings.",
-        f"There's something magical in {user_input} that speaks to the soul."
-    ]
-
-    templates = {
-        "casual": casual_templates,
-        "professional": professional_templates,
-        "funny": funny_templates,
-        "inspirational": inspirational_templates
-    }
-
-    return random.choice(templates.get(style, casual_templates))
-
-# -----------------------------
-# Generate Caption from Model
+# Caption Generation
 # -----------------------------
 def generate_clean_caption(user_input, style='casual'):
     category = detect_category_advanced(user_input)
@@ -212,63 +149,52 @@ def generate_clean_caption(user_input, style='casual'):
         f"Just finished {user_input.strip()}",
         f"Loving this {user_input.strip()} moment"
     ]
-
     best_caption = ""
-
     for prompt in clean_prompts:
-        inputs = tokenizer(prompt, return_tensors="pt").to(model.device if torch.cuda.is_available() else "cpu")
-
+        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
         with torch.no_grad():
             output = model.generate(
-                **inputs,
-                max_new_tokens=40,
-                temperature=0.7,
-                top_p=0.8,
-                do_sample=True,
-                pad_token_id=tokenizer.eos_token_id,
-                eos_token_id=tokenizer.eos_token_id,
-                repetition_penalty=1.1,
+                **inputs, max_new_tokens=40, temperature=0.7, top_p=0.8,
+                do_sample=True, pad_token_id=tokenizer.eos_token_id,
+                eos_token_id=tokenizer.eos_token_id, repetition_penalty=1.1,
                 early_stopping=True
             )
-
         result = tokenizer.decode(output[0], skip_special_tokens=True)
         raw_caption = result.replace(prompt, "").strip()
-
         if is_clean_caption(raw_caption):
             best_caption = clean_text(raw_caption)
             break
-
     if not best_caption or len(best_caption) < 20:
-        best_caption = generate_fallback_caption(user_input, style, category)
-
+        best_caption = random.choice([
+            f"Can't stop thinking about {user_input}.",
+            f"Still dreaming of {user_input}.",
+            f"{user_input} — unforgettable!",
+            f"{user_input} was everything.",
+            f"Where do I even begin with {user_input}?"
+        ])
     hashtags = get_category_hashtags(category)[:5]
     emojis = get_category_emojis(category)[:2]
-
     if not best_caption.endswith(('.', '!', '?')):
         best_caption += "!"
-
     final_caption = f"{' '.join(emojis)} {best_caption}\n\n{' '.join(hashtags)}"
     return final_caption, category
 
 # -----------------------------
 # Streamlit UI
 # -----------------------------
-st.title("🌅 SunsetGram AI")
+st.title("\ud83c\udf05 SunsetGram AI")
 st.markdown("Generate engaging Instagram captions, hashtags & emojis powered by AI!")
 
 user_input = st.text_input("What is your post about?")
 style = st.radio("Choose Style", ["casual", "professional", "funny", "inspirational"])
 
-generate_button = st.button("Generate Caption ✨")
-
 if "history" not in st.session_state:
     st.session_state.history = []
 
-if generate_button and user_input.strip():
+if st.button("Generate Caption ✨") and user_input.strip():
     with st.spinner("Crafting the perfect caption..."):
         caption, category = generate_clean_caption(user_input, style)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
         st.session_state.history.insert(0, {
             "input": user_input,
             "caption": caption,
@@ -276,7 +202,6 @@ if generate_button and user_input.strip():
             "category": category,
             "timestamp": timestamp
         })
-
         st.markdown("#### ✅ Here's your generated caption:")
         st.markdown(f"""
         <div class='caption-section'>
@@ -286,11 +211,8 @@ if generate_button and user_input.strip():
             </div>
         </div>
         """, unsafe_allow_html=True)
-        st.code(caption, language=None)
+        st.code(caption)
 
-# -----------------------------
-# Caption History
-# -----------------------------
 if st.session_state.history:
     st.markdown("## 🕒 Your Recent Captions")
     for i, item in enumerate(st.session_state.history[:5]):
@@ -304,4 +226,4 @@ if st.session_state.history:
                 <div style='font-size: 0.8rem; color: #888; margin-top: 10px;'>Generated on {item["timestamp"]}</div>
             </div>
             """, unsafe_allow_html=True)
-            st.code(item["caption"], language=None)
+            st.code(item["caption"])
