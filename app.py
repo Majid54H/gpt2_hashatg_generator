@@ -113,38 +113,25 @@ def get_category_emojis(category):
     return emoji_dict.get(category, emoji_dict["general"])
 
 def clean_and_format_caption(raw_caption, user_input, category, style):
-    # Remove any prompt remnants
-    caption = raw_caption
-    for phrase in ["Instagram caption:", "Caption:", "Write a", "Create a", "Share your"]:
-        caption = caption.replace(phrase, "").strip()
+    # Ensure we have clean caption text
+    caption = raw_caption.strip()
     
-    # Remove leading colons, dashes, etc.
-    caption = re.sub(r'^[:\-\s]*', '', caption)
+    # If caption is still messy or too short, use fallback
+    if not caption or len(caption) < 20 or not is_clean_caption(caption):
+        caption = generate_fallback_caption(user_input, style, category)
     
-    # Remove hashtags from the generated text (we'll add our own)
-    caption = re.sub(r'#\w+', '', caption)
+    # Final cleaning
+    caption = clean_text(caption)
     
-    # Clean up extra whitespace
-    caption = ' '.join(caption.split())
-    
-    # Ensure caption doesn't end abruptly
+    # Make sure caption ends properly
     if caption and not caption.endswith(('.', '!', '?')):
-        # If it looks like it was cut off mid-sentence, try to complete it naturally
-        if len(caption) > 100:
-            # Find the last complete sentence
-            last_punct = max(caption.rfind('.'), caption.rfind('!'), caption.rfind('?'))
-            if last_punct > len(caption) * 0.7:  # If we have a sentence that's at least 70% of the text
-                caption = caption[:last_punct + 1]
-            else:
-                caption += "!"
-        else:
-            caption += "!"
+        caption += "!"
     
-    # Get appropriate hashtags and emojis
-    hashtags = get_category_hashtags(category)[:6]
-    emojis = get_category_emojis(category)[:2]
+    # Get clean hashtags and emojis
+    hashtags = get_category_hashtags(category)[:5]  # Limit to 5 clean hashtags
+    emojis = get_category_emojis(category)[:2]      # Limit to 2 emojis
     
-    # Format the final caption with proper structure
+    # Format with clear structure
     formatted_caption = f"{' '.join(emojis)} {caption}\n\n{' '.join(hashtags)}"
     
     return formatted_caption
@@ -198,65 +185,202 @@ def generate_fallback_caption(user_input, style, category):
 # -----------------------------
 def generate_clean_caption(user_input, style='casual'):
     try:
-        # Create more detailed prompts specifically asking for engaging captions
-        detailed_prompts = [
-            f"Write a detailed, engaging Instagram caption about {user_input.strip()} in a {style} style. Include personal thoughts, emotions, and ask a question to engage followers:",
-            f"Create a captivating Instagram post about {user_input.strip()}. Write it in a {style} tone with storytelling elements and audience engagement:",
-            f"Instagram caption: Share your experience with {user_input.strip()} in a {style} way. Include details, feelings, and connect with your audience:",
-            f"Write a {style} Instagram caption describing {user_input.strip()}. Make it personal, engaging, and include a question for followers:",
+        category = detect_category_advanced(user_input)
+        
+        # Simple, clean prompts that work better with GPT-2
+        clean_prompts = [
+            f"{user_input.strip()}. This is amazing",
+            f"Today I experienced {user_input.strip()}",
+            f"Just finished {user_input.strip()}",
+            f"Loving this {user_input.strip()} moment"
         ]
         
         best_caption = ""
-        category = detect_category_advanced(user_input)
         
-        # Try each detailed prompt
-        for prompt in detailed_prompts:
+        # Try each simple prompt
+        for prompt in clean_prompts:
             inputs = tokenizer(prompt, return_tensors="pt").to(model.device if torch.cuda.is_available() else "cpu")
 
             with torch.no_grad():
                 output = model.generate(
                     **inputs,
-                    max_new_tokens=100,  # Increased for longer captions
-                    temperature=0.9,     # Higher for more creativity
-                    top_p=0.95,
+                    max_new_tokens=40,   # Reduced to prevent gibberish
+                    temperature=0.7,     # Lower temperature for more coherent text
+                    top_p=0.8,          # More focused sampling
                     do_sample=True,
                     pad_token_id=tokenizer.eos_token_id,
                     eos_token_id=tokenizer.eos_token_id,
-                    repetition_penalty=1.2,  # Reduce repetition
-                    length_penalty=1.0,
-                    no_repeat_ngram_size=3
+                    repetition_penalty=1.1,
+                    early_stopping=True
                 )
 
             result = tokenizer.decode(output[0], skip_special_tokens=True)
             raw_caption = result.replace(prompt, "").strip()
             
-            # Clean and extract meaningful content
-            raw_caption = re.sub(r'^[:\-\s]*', '', raw_caption)
-            raw_caption = re.sub(r'^(caption|post|instagram)?\s*:?\s*', '', raw_caption, flags=re.IGNORECASE)
-            
-            # Check if this gives us a substantial caption (more than 30 characters)
-            if raw_caption and len(raw_caption) > 30 and not raw_caption.startswith('#'):
-                # Clean up the caption further
-                sentences = [s.strip() for s in raw_caption.split('.') if s.strip() and len(s.strip()) > 5]
-                if len(sentences) >= 2:  # We want multi-sentence captions
-                    best_caption = '. '.join(sentences[:4])  # Take up to 4 sentences
-                    if not best_caption.endswith(('.', '!', '?')):
-                        best_caption += '.'
-                    break
+            # Strict validation for clean text
+            if is_clean_caption(raw_caption):
+                best_caption = clean_text(raw_caption)
+                break
         
-        # If model didn't generate good content, use detailed fallback
-        if not best_caption or len(best_caption) < 50:
+        # If model output is bad, always use fallback
+        if not best_caption or len(best_caption) < 20:
             best_caption = generate_fallback_caption(user_input, style, category)
         
         formatted_caption = clean_and_format_caption(best_caption, user_input, category, style)
         return formatted_caption, category
         
     except Exception as e:
-        # Complete fallback with detailed templates
+        # Always use fallback on error
         category = detect_category_advanced(user_input)
         fallback_caption = generate_fallback_caption(user_input, style, category)
         formatted_caption = clean_and_format_caption(fallback_caption, user_input, category, style)
         return formatted_caption, category
+
+def is_clean_caption(text):
+    """Check if the generated text is actually a clean, readable caption"""
+    if not text or len(text) < 10:
+        return False
+    
+    # Check for common bad patterns
+    bad_patterns = [
+        r'http[s]?://',      # URLs
+        r'#\w+',             # Hashtags
+        r'\[.*?\]',          # Brackets with content
+        r'【.*?】',           # Japanese brackets
+        r'quote=',           # Quote tags
+        r'tagline=',         # Tagline tags
+        r'tbtfunkyblogger',  # Specific spam
+        r'☎',                # Phone emoji (weird in captions)
+        r'👉.*?http',        # Arrow pointing to links
+        r'\d{4}-\d{2}-\d{2}', # Dates
+        r'\.com',            # Domain extensions
+    ]
+    
+    for pattern in bad_patterns:
+        if re.search(pattern, text, re.IGNORECASE):
+            return False
+    
+    # Check for too many emojis or symbols
+    emoji_count = len(re.findall(r'[😀-🙏🌀-🗿🚀-🛿⚡-⚿]', text))
+    if emoji_count > 3:
+        return False
+    
+    # Check for gibberish (too many non-letter characters)
+    letter_count = len(re.findall(r'[a-zA-Z]', text))
+    total_count = len(text.replace(' ', ''))
+    if total_count > 0 and letter_count / total_count < 0.6:
+        return False
+    
+    return True
+
+def clean_text(text):
+    """Clean up the generated text"""
+    # Remove any remaining bad content
+    text = re.sub(r'http[s]?://\S+', '', text)
+    text = re.sub(r'#\w+', '', text)
+    text = re.sub(r'\[.*?\]', '', text)
+    text = re.sub(r'【.*?】', '', text)
+    text = re.sub(r'quote=.*?(?=\s|$)', '', text)
+    text = re.sub(r'tagline=.*?(?=\s|$)', '', text)
+    
+    # Clean up whitespace
+    text = ' '.join(text.split())
+    
+    # Remove trailing punctuation if it looks incomplete
+    text = re.sub(r'[,.\-]+
+
+# -----------------------------
+# Streamlit UI
+# -----------------------------
+st.title("🌅 SunsetGram AI")
+st.markdown("Generate engaging Instagram captions, hashtags & emojis powered by AI!")
+
+user_input = st.text_input("What is your post about? (e.g., sunset at beach, morning coffee, gym selfie)")
+style = st.radio("Choose Style", ["casual", "professional", "funny", "inspirational"])
+
+generate_button = st.button("Generate Caption ✨")
+
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+if generate_button and user_input.strip() != "":
+    with st.spinner("Crafting the perfect caption..."):
+        try:
+            caption, category = generate_clean_caption(user_input, style)
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # Save to history
+            st.session_state.history.insert(0, {
+                "input": user_input,
+                "caption": caption,
+                "style": style,
+                "category": category,
+                "timestamp": timestamp
+            })
+
+            # Display the formatted caption
+            st.markdown("#### ✅ Here's your generated caption:")
+            st.markdown(f"""
+            <div class='caption-section'>
+                <div class='caption-text'>{caption}</div>
+                <div style='font-size: 0.9rem; color: #7F8C8D; margin-top: 10px;'>
+                    <strong>Style:</strong> {style.title()} | <strong>Category:</strong> {category.title()}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Copy button functionality
+            st.code(caption, language=None)
+
+        except Exception as e:
+            st.error(f"Something went wrong: {str(e)}")
+            # Show fallback option
+            st.info("Generating a custom caption for you...")
+            category = detect_category_advanced(user_input)
+            fallback_caption = generate_fallback_caption(user_input, style, category)
+            formatted_caption = clean_and_format_caption(fallback_caption, user_input, category, style)
+            
+            # Save fallback to history
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            st.session_state.history.insert(0, {
+                "input": user_input,
+                "caption": formatted_caption,
+                "style": style,
+                "category": category,
+                "timestamp": timestamp
+            })
+            
+            st.markdown(f"""
+            <div class='caption-section'>
+                <div class='caption-text'>{formatted_caption}</div>
+                <div style='font-size: 0.9rem; color: #7F8C8D; margin-top: 10px;'>
+                    <strong>Style:</strong> {style.title()} | <strong>Category:</strong> {category.title()}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.code(formatted_caption, language=None)
+
+# -----------------------------
+# History Section
+# -----------------------------
+if st.session_state.history:
+    st.markdown("## 🕒 Your Recent Captions")
+    for i, item in enumerate(st.session_state.history[:5]):
+        with st.expander(f"📝 {item['input'][:50]}{'...' if len(item['input']) > 50 else ''}", expanded=(i==0)):
+            st.markdown(f"""
+            <div class='caption-section'>
+                <div><strong>Original Input:</strong> {item["input"]}</div>
+                <div><strong>Style:</strong> {item["style"]} | <strong>Category:</strong> {item["category"]}</div>
+                <div style='margin-top: 15px;'><strong>Generated Caption:</strong></div>
+                <div class='caption-text'>{item["caption"]}</div>
+                <div style='font-size: 0.8rem; color: #888; margin-top: 10px;'>Generated on {item["timestamp"]}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Copy button for each caption
+            st.code(item["caption"], language=None), '', text).strip()
+    
+    return text
 
 # -----------------------------
 # Streamlit UI
