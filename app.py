@@ -113,80 +113,74 @@ def get_category_emojis(category):
     return emoji_dict.get(category, emoji_dict["general"])
 
 def clean_and_format_caption(raw_caption, user_input, category, style):
-    # Remove the original prompt from the output
-    caption = raw_caption.replace(f"Instagram caption: {user_input.strip()}", "").strip()
+    # Remove any prompt remnants
+    caption = raw_caption
+    for phrase in ["Instagram caption:", "Caption:", "Write a", "Create a", "Share your"]:
+        caption = caption.replace(phrase, "").strip()
     
-    # Remove any leftover prompt text and common prefixes
-    caption = re.sub(r'^.*?caption:\s*', '', caption, flags=re.IGNORECASE)
-    caption = re.sub(r'^.*?for:\s*', '', caption, flags=re.IGNORECASE)
+    # Remove leading colons, dashes, etc.
     caption = re.sub(r'^[:\-\s]*', '', caption)
     
     # Remove hashtags from the generated text (we'll add our own)
     caption = re.sub(r'#\w+', '', caption)
     
-    # Clean up the caption
-    caption = caption.strip()
+    # Clean up extra whitespace
+    caption = ' '.join(caption.split())
     
-    # Check if we have meaningful caption text (not just hashtags or very short text)
-    if not caption or len(caption) < 10 or caption.count('#') > caption.count(' '):
-        # Use fallback caption generation
-        caption = generate_fallback_caption(user_input, style, category)
-    else:
-        # Split caption into sentences and take meaningful parts
-        sentences = [s.strip() for s in caption.split('.') if s.strip()]
-        if sentences:
-            main_caption = sentences[0]
-            if len(main_caption) < 15 and len(sentences) > 1:
-                main_caption = f"{main_caption}. {sentences[1]}"
-            caption = main_caption
-    
-    # Ensure caption doesn't end with incomplete sentence
+    # Ensure caption doesn't end abruptly
     if caption and not caption.endswith(('.', '!', '?')):
-        if len(caption) > 50:
-            caption = caption.rsplit(' ', 1)[0] + "!"
+        # If it looks like it was cut off mid-sentence, try to complete it naturally
+        if len(caption) > 100:
+            # Find the last complete sentence
+            last_punct = max(caption.rfind('.'), caption.rfind('!'), caption.rfind('?'))
+            if last_punct > len(caption) * 0.7:  # If we have a sentence that's at least 70% of the text
+                caption = caption[:last_punct + 1]
+            else:
+                caption += "!"
         else:
             caption += "!"
     
     # Get appropriate hashtags and emojis
-    hashtags = get_category_hashtags(category)[:6]  # Limit to 6 hashtags
-    emojis = get_category_emojis(category)[:2]      # Limit to 2 emojis for cleaner look
+    hashtags = get_category_hashtags(category)[:6]
+    emojis = get_category_emojis(category)[:2]
     
-    # Format the final caption
+    # Format the final caption with proper structure
     formatted_caption = f"{' '.join(emojis)} {caption}\n\n{' '.join(hashtags)}"
     
     return formatted_caption
 
 def generate_fallback_caption(user_input, style, category):
+    # More detailed, engaging templates like your example
     casual_templates = [
-        f"Absolutely loving this {user_input} moment!",
-        f"Can't get enough of {user_input} vibes",
-        f"This {user_input} just hits different",
-        f"Living for these {user_input} moments",
-        f"Pure {user_input} bliss right here"
+        f"Lost in the magic of {user_input}. There's something about moments like these that just makes everything feel right. The energy is absolutely contagious and I can't get enough of it. What's your favorite part about {user_input}?",
+        f"Completely mesmerized by {user_input} today. Every detail catches my eye and I find myself getting lost in the experience. The vibes here are unmatched. Who else is obsessed with {user_input}?",
+        f"Can't believe how incredible {user_input} is! The atmosphere is so alive and vibrant, I could spend hours just soaking it all in. Every moment feels like a new discovery. What draws you to {user_input}?",
+        f"Falling in love with {user_input} all over again. There's this raw energy that just pulls you in and doesn't let go. I'm discovering new things every time I experience this. Tell me about your {user_input} story!",
+        f"Absolutely captivated by the beauty of {user_input}. The way everything comes together creates this perfect moment that I never want to end. I could explore this forever. What's your go-to {user_input} spot?"
     ]
     
     professional_templates = [
-        f"Excited to share this incredible {user_input} experience with you all",
-        f"Grateful for moments like these. {user_input} never gets old",
-        f"Taking a moment to appreciate the beauty of {user_input}",
-        f"Sometimes you just have to stop and enjoy {user_input}",
-        f"Sharing some {user_input} inspiration with my community"
+        f"Reflecting on the incredible experience of {user_input}. The depth and richness of every moment continues to inspire me in ways I never expected. There's so much beauty in the details that often go unnoticed. What aspects of {user_input} inspire you most?",
+        f"Grateful to witness the artistry behind {user_input}. The craftsmanship and attention to detail is truly remarkable. It's experiences like these that remind me why I'm passionate about sharing authentic moments. How has {user_input} influenced your perspective?",
+        f"Taking time to appreciate the excellence of {user_input}. The quality and dedication that goes into creating experiences like this is truly inspiring. I'm honored to be part of this journey. What's your connection to {user_input}?",
+        f"Immersed in the sophistication of {user_input}. The elegance and thoughtfulness in every element creates an atmosphere of pure excellence. Moments like these fuel my creativity and passion. Share your thoughts on {user_input}!",
+        f"Experiencing the mastery of {user_input} firsthand. The level of expertise and innovation on display is absolutely remarkable. It's encounters like these that push boundaries and inspire growth. What's your favorite {user_input} memory?"
     ]
     
     funny_templates = [
-        f"When {user_input} becomes your entire personality and you're not even mad about it",
-        f"Me: I won't post about {user_input} today. Also me:",
-        f"Plot twist: {user_input} was the main character all along",
-        f"Breaking news: Local person obsessed with {user_input}",
-        f"Is it really {user_input} if you don't post about it?"
+        f"So apparently {user_input} has completely taken over my life and I'm not even mad about it. Like, when did I become this person who gets genuinely excited about {user_input}? Plot twist: I love every second of it. Anyone else have a mild {user_input} obsession?",
+        f"Me: I'll just quickly check out {user_input}. Also me three hours later: still here, no regrets, living my best life. How did {user_input} become my entire personality? Not complaining though! Who else gets completely lost in {user_input}?",
+        f"Breaking news: Local person discovers {user_input} and forgets how to act normal. The evidence is overwhelming and I'm definitely guilty as charged. Send help... or don't, I'm having too much fun! What's your {user_input} guilty pleasure?",
+        f"Current mood: pretending I'm not completely obsessed with {user_input} while simultaneously planning my next {user_input} adventure. The struggle is real but so is the joy! Anyone else living this double life?",
+        f"Plot twist: {user_input} was the main character all along and I'm just here for the ride. Honestly didn't see this level of addiction coming but here we are! What's the weirdest thing you love about {user_input}?"
     ]
     
     inspirational_templates = [
-        f"Every {user_input} reminds me that life is full of beautiful moments",
-        f"Find your {user_input} and chase it with everything you've got",
-        f"In a world full of chaos, be someone's {user_input}",
-        f"The magic happens when you embrace moments like {user_input}",
-        f"Life is short, make every {user_input} count"
+        f"Every encounter with {user_input} reminds me that life is full of extraordinary moments waiting to be discovered. The beauty lies not just in the destination, but in every step of the journey. Embrace the magic around you. What's inspiring you today?",
+        f"In a world that moves so fast, {user_input} teaches us to slow down and truly appreciate the present moment. There's profound wisdom in taking time to connect with what matters most. Find your {user_input} and let it guide you. What brings you peace?",
+        f"The power of {user_input} lies in its ability to transform ordinary moments into extraordinary memories. Every experience shapes us and helps us grow into who we're meant to become. Chase what sets your soul on fire. What's your passion?",
+        f"Through {user_input}, I'm reminded that the most beautiful things in life often come from stepping outside our comfort zones. Growth happens when we embrace new experiences with an open heart. What's calling you to be brave?",
+        f"There's something magical about {user_input} that speaks to the deepest parts of our being. It connects us to ourselves, to others, and to the world around us in ways we never expected. What connects you to your purpose?"
     ]
     
     templates = {
@@ -204,49 +198,61 @@ def generate_fallback_caption(user_input, style, category):
 # -----------------------------
 def generate_clean_caption(user_input, style='casual'):
     try:
-        # Try multiple prompt variations for better results
-        prompts = [
-            f"Write a {style} Instagram caption about {user_input.strip()}:",
-            f"Caption: {user_input.strip()}",
-            f"{user_input.strip()}"
+        # Create more detailed prompts specifically asking for engaging captions
+        detailed_prompts = [
+            f"Write a detailed, engaging Instagram caption about {user_input.strip()} in a {style} style. Include personal thoughts, emotions, and ask a question to engage followers:",
+            f"Create a captivating Instagram post about {user_input.strip()}. Write it in a {style} tone with storytelling elements and audience engagement:",
+            f"Instagram caption: Share your experience with {user_input.strip()} in a {style} way. Include details, feelings, and connect with your audience:",
+            f"Write a {style} Instagram caption describing {user_input.strip()}. Make it personal, engaging, and include a question for followers:",
         ]
         
         best_caption = ""
         category = detect_category_advanced(user_input)
         
-        # Try each prompt until we get a good result
-        for prompt in prompts:
+        # Try each detailed prompt
+        for prompt in detailed_prompts:
             inputs = tokenizer(prompt, return_tensors="pt").to(model.device if torch.cuda.is_available() else "cpu")
 
             with torch.no_grad():
                 output = model.generate(
                     **inputs,
-                    max_new_tokens=50,
-                    temperature=0.8,
-                    top_p=0.9,
+                    max_new_tokens=100,  # Increased for longer captions
+                    temperature=0.9,     # Higher for more creativity
+                    top_p=0.95,
                     do_sample=True,
                     pad_token_id=tokenizer.eos_token_id,
                     eos_token_id=tokenizer.eos_token_id,
-                    repetition_penalty=1.1
+                    repetition_penalty=1.2,  # Reduce repetition
+                    length_penalty=1.0,
+                    no_repeat_ngram_size=3
                 )
 
             result = tokenizer.decode(output[0], skip_special_tokens=True)
             raw_caption = result.replace(prompt, "").strip()
             
-            # Check if this gives us a meaningful caption
-            if raw_caption and len(raw_caption) > 10 and not raw_caption.startswith('#'):
-                best_caption = raw_caption
-                break
+            # Clean and extract meaningful content
+            raw_caption = re.sub(r'^[:\-\s]*', '', raw_caption)
+            raw_caption = re.sub(r'^(caption|post|instagram)?\s*:?\s*', '', raw_caption, flags=re.IGNORECASE)
+            
+            # Check if this gives us a substantial caption (more than 30 characters)
+            if raw_caption and len(raw_caption) > 30 and not raw_caption.startswith('#'):
+                # Clean up the caption further
+                sentences = [s.strip() for s in raw_caption.split('.') if s.strip() and len(s.strip()) > 5]
+                if len(sentences) >= 2:  # We want multi-sentence captions
+                    best_caption = '. '.join(sentences[:4])  # Take up to 4 sentences
+                    if not best_caption.endswith(('.', '!', '?')):
+                        best_caption += '.'
+                    break
         
-        # If no good caption from model, use fallback
-        if not best_caption or len(best_caption) < 10:
+        # If model didn't generate good content, use detailed fallback
+        if not best_caption or len(best_caption) < 50:
             best_caption = generate_fallback_caption(user_input, style, category)
         
         formatted_caption = clean_and_format_caption(best_caption, user_input, category, style)
         return formatted_caption, category
         
     except Exception as e:
-        # Complete fallback
+        # Complete fallback with detailed templates
         category = detect_category_advanced(user_input)
         fallback_caption = generate_fallback_caption(user_input, style, category)
         formatted_caption = clean_and_format_caption(fallback_caption, user_input, category, style)
