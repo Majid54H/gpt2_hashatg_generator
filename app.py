@@ -114,68 +114,143 @@ def get_category_emojis(category):
 
 def clean_and_format_caption(raw_caption, user_input, category, style):
     # Remove the original prompt from the output
-    caption = raw_caption.replace(f"Generate an Instagram caption with emojis and hashtags in a {style} style for: {user_input.strip()}", "").strip()
+    caption = raw_caption.replace(f"Instagram caption: {user_input.strip()}", "").strip()
     
-    # Remove any leftover prompt text
-    caption = re.sub(r'^.*?for:\s*', '', caption, flags=re.IGNORECASE)
+    # Remove any leftover prompt text and common prefixes
     caption = re.sub(r'^.*?caption:\s*', '', caption, flags=re.IGNORECASE)
+    caption = re.sub(r'^.*?for:\s*', '', caption, flags=re.IGNORECASE)
+    caption = re.sub(r'^[:\-\s]*', '', caption)
+    
+    # Remove hashtags from the generated text (we'll add our own)
+    caption = re.sub(r'#\w+', '', caption)
     
     # Clean up the caption
     caption = caption.strip()
-    if not caption:
-        # Fallback caption generation
-        caption = generate_fallback_caption(user_input, style)
     
-    # Split caption into sentences and take the first meaningful part
-    sentences = caption.split('.')
-    main_caption = sentences[0].strip()
-    if len(main_caption) < 10 and len(sentences) > 1:
-        main_caption = f"{main_caption}. {sentences[1].strip()}"
+    # Check if we have meaningful caption text (not just hashtags or very short text)
+    if not caption or len(caption) < 10 or caption.count('#') > caption.count(' '):
+        # Use fallback caption generation
+        caption = generate_fallback_caption(user_input, style, category)
+    else:
+        # Split caption into sentences and take meaningful parts
+        sentences = [s.strip() for s in caption.split('.') if s.strip()]
+        if sentences:
+            main_caption = sentences[0]
+            if len(main_caption) < 15 and len(sentences) > 1:
+                main_caption = f"{main_caption}. {sentences[1]}"
+            caption = main_caption
+    
+    # Ensure caption doesn't end with incomplete sentence
+    if caption and not caption.endswith(('.', '!', '?')):
+        if len(caption) > 50:
+            caption = caption.rsplit(' ', 1)[0] + "!"
+        else:
+            caption += "!"
     
     # Get appropriate hashtags and emojis
-    hashtags = get_category_hashtags(category)[:5]  # Limit to 5 hashtags
-    emojis = get_category_emojis(category)[:3]      # Limit to 3 emojis
+    hashtags = get_category_hashtags(category)[:6]  # Limit to 6 hashtags
+    emojis = get_category_emojis(category)[:2]      # Limit to 2 emojis for cleaner look
     
     # Format the final caption
-    formatted_caption = f"{' '.join(emojis)} {main_caption}\n\n{' '.join(hashtags)}"
+    formatted_caption = f"{' '.join(emojis)} {caption}\n\n{' '.join(hashtags)}"
     
     return formatted_caption
 
-def generate_fallback_caption(user_input, style):
-    fallback_templates = {
-        "casual": f"Just loving this moment! {user_input} hits different ✨",
-        "professional": f"Excited to share this with you all. {user_input} represents something special.",
-        "funny": f"When {user_input} becomes your whole personality 😂",
-        "inspirational": f"Every moment like this reminds me why {user_input} matters. Keep chasing your dreams!"
+def generate_fallback_caption(user_input, style, category):
+    casual_templates = [
+        f"Absolutely loving this {user_input} moment!",
+        f"Can't get enough of {user_input} vibes",
+        f"This {user_input} just hits different",
+        f"Living for these {user_input} moments",
+        f"Pure {user_input} bliss right here"
+    ]
+    
+    professional_templates = [
+        f"Excited to share this incredible {user_input} experience with you all",
+        f"Grateful for moments like these. {user_input} never gets old",
+        f"Taking a moment to appreciate the beauty of {user_input}",
+        f"Sometimes you just have to stop and enjoy {user_input}",
+        f"Sharing some {user_input} inspiration with my community"
+    ]
+    
+    funny_templates = [
+        f"When {user_input} becomes your entire personality and you're not even mad about it",
+        f"Me: I won't post about {user_input} today. Also me:",
+        f"Plot twist: {user_input} was the main character all along",
+        f"Breaking news: Local person obsessed with {user_input}",
+        f"Is it really {user_input} if you don't post about it?"
+    ]
+    
+    inspirational_templates = [
+        f"Every {user_input} reminds me that life is full of beautiful moments",
+        f"Find your {user_input} and chase it with everything you've got",
+        f"In a world full of chaos, be someone's {user_input}",
+        f"The magic happens when you embrace moments like {user_input}",
+        f"Life is short, make every {user_input} count"
+    ]
+    
+    templates = {
+        "casual": casual_templates,
+        "professional": professional_templates,
+        "funny": funny_templates,
+        "inspirational": inspirational_templates
     }
-    return fallback_templates.get(style, f"Amazing {user_input} moment!")
+    
+    selected_templates = templates.get(style, casual_templates)
+    return random.choice(selected_templates)
 
 # -----------------------------
 # Hugging Face Text Generation
 # -----------------------------
 def generate_clean_caption(user_input, style='casual'):
-    # Simplified prompt for better results
-    prompt = f"Instagram caption: {user_input.strip()}"
-    inputs = tokenizer(prompt, return_tensors="pt").to(model.device if torch.cuda.is_available() else "cpu")
+    try:
+        # Try multiple prompt variations for better results
+        prompts = [
+            f"Write a {style} Instagram caption about {user_input.strip()}:",
+            f"Caption: {user_input.strip()}",
+            f"{user_input.strip()}"
+        ]
+        
+        best_caption = ""
+        category = detect_category_advanced(user_input)
+        
+        # Try each prompt until we get a good result
+        for prompt in prompts:
+            inputs = tokenizer(prompt, return_tensors="pt").to(model.device if torch.cuda.is_available() else "cpu")
 
-    with torch.no_grad():
-        output = model.generate(
-            **inputs,
-            max_new_tokens=60,  # Reduced for cleaner output
-            temperature=0.7,    # Slightly lower for more coherent text
-            top_p=0.9,
-            do_sample=True,
-            pad_token_id=tokenizer.eos_token_id,
-            eos_token_id=tokenizer.eos_token_id
-        )
+            with torch.no_grad():
+                output = model.generate(
+                    **inputs,
+                    max_new_tokens=50,
+                    temperature=0.8,
+                    top_p=0.9,
+                    do_sample=True,
+                    pad_token_id=tokenizer.eos_token_id,
+                    eos_token_id=tokenizer.eos_token_id,
+                    repetition_penalty=1.1
+                )
 
-    result = tokenizer.decode(output[0], skip_special_tokens=True)
-    raw_caption = result.replace(prompt, "").strip()
-    
-    category = detect_category_advanced(user_input)
-    formatted_caption = clean_and_format_caption(raw_caption, user_input, category, style)
-    
-    return formatted_caption, category
+            result = tokenizer.decode(output[0], skip_special_tokens=True)
+            raw_caption = result.replace(prompt, "").strip()
+            
+            # Check if this gives us a meaningful caption
+            if raw_caption and len(raw_caption) > 10 and not raw_caption.startswith('#'):
+                best_caption = raw_caption
+                break
+        
+        # If no good caption from model, use fallback
+        if not best_caption or len(best_caption) < 10:
+            best_caption = generate_fallback_caption(user_input, style, category)
+        
+        formatted_caption = clean_and_format_caption(best_caption, user_input, category, style)
+        return formatted_caption, category
+        
+    except Exception as e:
+        # Complete fallback
+        category = detect_category_advanced(user_input)
+        fallback_caption = generate_fallback_caption(user_input, style, category)
+        formatted_caption = clean_and_format_caption(fallback_caption, user_input, category, style)
+        return formatted_caption, category
 
 # -----------------------------
 # Streamlit UI
@@ -223,10 +298,30 @@ if generate_button and user_input.strip() != "":
         except Exception as e:
             st.error(f"Something went wrong: {str(e)}")
             # Show fallback option
-            st.info("Generating a fallback caption...")
+            st.info("Generating a custom caption for you...")
             category = detect_category_advanced(user_input)
-            fallback_caption = clean_and_format_caption("", user_input, category, style)
-            st.markdown(f"<div class='generated-text'>{fallback_caption}</div>", unsafe_allow_html=True)
+            fallback_caption = generate_fallback_caption(user_input, style, category)
+            formatted_caption = clean_and_format_caption(fallback_caption, user_input, category, style)
+            
+            # Save fallback to history
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            st.session_state.history.insert(0, {
+                "input": user_input,
+                "caption": formatted_caption,
+                "style": style,
+                "category": category,
+                "timestamp": timestamp
+            })
+            
+            st.markdown(f"""
+            <div class='caption-section'>
+                <div class='caption-text'>{formatted_caption}</div>
+                <div style='font-size: 0.9rem; color: #7F8C8D; margin-top: 10px;'>
+                    <strong>Style:</strong> {style.title()} | <strong>Category:</strong> {category.title()}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.code(formatted_caption, language=None)
 
 # -----------------------------
 # History Section
